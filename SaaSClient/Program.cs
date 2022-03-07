@@ -21,8 +21,7 @@ namespace SaaSClient
         {
             const string baseAddress = "https://saas.tachosys.com/api/";
 
-            var client = new HttpClient
-            {
+            var client = new HttpClient {
                 BaseAddress = new Uri(baseAddress),
                 Timeout = new TimeSpan(0, 2, 0)
             };
@@ -33,8 +32,7 @@ namespace SaaSClient
             const string username = "james@prosysdev.com";
             const string password = "MrForgetful";
 
-            HttpResponseMessage response = await client.PostAsJsonAsync(tokenUri, new LoginModel
-            {
+            HttpResponseMessage response = await client.PostAsJsonAsync(tokenUri, new LoginModel {
                 Username = username,
                 Password = password
             });
@@ -56,15 +54,20 @@ namespace SaaSClient
             var content = new ByteArrayContent(File.ReadAllBytes(filename));
             form.Add(content, "File", Path.GetFileName(filename));
 
+            string fileGuid;
+
             response = await client.PostAsync(uploadUri, form);
-            if (response.IsSuccessStatusCode)
-                Console.WriteLine("File upload successful.");
+            if (response.IsSuccessStatusCode) {
+                var uploadResult = await response.Content.ReadAsAsync<FileGuidModel>();
+                fileGuid = uploadResult.FileGuid;
+                Console.WriteLine($"File upload successful. File GUID - {fileGuid}");
+            }
             else
                 throw new ApplicationException(string.Format("Error: {0:d} {1} - {2}", response.StatusCode, response.ReasonPhrase, "File upload failed."));
 
             // File Parse result
             const string parseUri = "file/parse";
-            response = await client.GetAsync(parseUri);
+            response = await client.PostAsJsonAsync(parseUri, new FileGuidModel { FileGuid = fileGuid });
             if (response.IsSuccessStatusCode) {
                 var parseResults = await response.Content.ReadAsAsync<FileParseResponse>();
                 Console.WriteLine("Parse: {0}", JsonConvert.SerializeObject(parseResults, Formatting.Indented));
@@ -74,9 +77,8 @@ namespace SaaSClient
 
             // Get Filename
             const string filenameUri = "file/filename";
-
-            response = await client.PostAsJsonAsync(filenameUri, new FilenameRequest
-            {
+            response = await client.PostAsJsonAsync(filenameUri, new FilenameRequest {
+                FileGuid = fileGuid,
                 DownloadDate = DateTime.UtcNow,
                 NamingConvention = NamingConventions.StandardEuropean
             });
@@ -88,7 +90,7 @@ namespace SaaSClient
             // Get Summary
             const string summaryUri = "file/summary";
 
-            response = await client.GetAsync(summaryUri);
+            response = await client.PostAsJsonAsync(summaryUri, new FileGuidModel { FileGuid = fileGuid });
             if (response.IsSuccessStatusCode) {
                 var summary = await response.Content.ReadAsAsync<FileSummaryResponse>();
                 Console.WriteLine("Summary: {0}", JsonConvert.SerializeObject(summary, Formatting.Indented));
@@ -99,8 +101,8 @@ namespace SaaSClient
             // Get File section
             const string sectionUri = "file/section";
 
-            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest
-            {
+            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest {
+                FileGuid = fileGuid,
                 FileID = "0520",
                 RecordType = "",
                 FileOccurrence = "0"
@@ -120,17 +122,17 @@ namespace SaaSClient
             ActivityDailyRecord[] activityCollection;
             SpecificConditionRecord[] specificConditionRecords;
             PlacesRecord[] placesRecords;
-            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest { FileID = "0504", FileOccurrence = "0" });
+            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest { FileGuid = fileGuid, FileID = "0504", FileOccurrence = "0" });
             if (response.IsSuccessStatusCode)
                 activityCollection = await response.Content.ReadAsAsync<ActivityDailyRecord[]>();
             else
                 throw new ApplicationException(string.Format("Error: {0:d} {1} - {2}", response.StatusCode, response.ReasonPhrase, "Failed to get file section."));
-            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest { FileID = "0506", FileOccurrence = "0" });
+            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest { FileGuid = fileGuid, FileID = "0506", FileOccurrence = "0" });
             if (response.IsSuccessStatusCode)
                 placesRecords = await response.Content.ReadAsAsync<PlacesRecord[]>();
             else
                 throw new ApplicationException(string.Format("Error: {0:d} {1} - {2}", response.StatusCode, response.ReasonPhrase, "Failed to get file section."));
-            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest { FileID = "0522", FileOccurrence = "0" });
+            response = await client.PostAsJsonAsync(sectionUri, new FileSectionRequest { FileGuid = fileGuid, FileID = "0522", FileOccurrence = "0" });
             if (response.IsSuccessStatusCode)
                 specificConditionRecords = await response.Content.ReadAsAsync<SpecificConditionRecord[]>();
             else
@@ -147,29 +149,29 @@ namespace SaaSClient
             const string placesRecordsUri = "analyse/data/placesRecords";
             const string specificConditionsUri = "analyse/data/specificConditionRecords";
 
-            response = await client.PostAsJsonAsync(activityInfoUri, activity);
+            response = await client.PostAsJsonAsync(activityInfoUri, new ActivityChangeInfoRequest { FileGuid = fileGuid, ActivityChangeInfo = activity.ToArray() });
             if (!response.IsSuccessStatusCode)
                 throw new ApplicationException(string.Format("Error: {0:d} {1} {2}", response.StatusCode, response.ReasonPhrase, "Failed to upload activityChangeInfo."));
-            response = await client.PostAsJsonAsync(placesRecordsUri, placesRecords);
+            response = await client.PostAsJsonAsync(placesRecordsUri, new PlacesRecordsRequest { FileGuid = fileGuid, PlacesRecords = placesRecords });
             if (!response.IsSuccessStatusCode)
                 throw new ApplicationException(string.Format("Error: {0:d} {1} {2}", response.StatusCode, response.ReasonPhrase, "Failed to upload placesRecords."));
-            response = await client.PostAsJsonAsync(specificConditionsUri, specificConditionRecords);
+            response = await client.PostAsJsonAsync(specificConditionsUri, new SpecificConditionRecordsRequest { FileGuid = fileGuid, SpecificConditionRecords = specificConditionRecords });
             if (!response.IsSuccessStatusCode)
                 throw new ApplicationException(string.Format("Error: {0:d} {1} {2}", response.StatusCode, response.ReasonPhrase, "Failed to upload specificConditionRecords."));
 
             // Get Driver Card analysis
             const string analyseUri = "analyse";
 
-            response = await client.PostAsJsonAsync(analyseUri, new AnalyseRequest
-            {
+            response = await client.PostAsJsonAsync(analyseUri, new AnalyseRequest {
+                FileGuid = fileGuid,
                 POAasBreak = false,
                 MissingManualEntry = false,
-                HomeNation = 0x15,
+                HomeNation = 0xfd,
                 Language = "en-GB",
                 TimeZone = "GMT Standard Time"
             });
             if (response.IsSuccessStatusCode) {
-                List<AnalysisItem> list = await response.Content.ReadAsAsync<List<AnalysisItem>>();
+                AnalysisItem[] list = await response.Content.ReadAsAsync<AnalysisItem[]>();
                 foreach (AnalysisItem item in list) {
                     Console.WriteLine($"Type    : {item.Type}");
                     Console.WriteLine($"SubType : {item.SubType}");

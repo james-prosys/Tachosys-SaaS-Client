@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace SaaSClient
 {
@@ -13,6 +14,11 @@ namespace SaaSClient
     {
         public string Token { get; set; }
         public int ExpiresIn { get; set; }
+    }
+
+    public class FileGuidModel
+    {
+        public string FileGuid { get; set; }
     }
 
     public class FileParseResponse
@@ -39,10 +45,9 @@ namespace SaaSClient
 
     public class FilenameRequest
     {
+        public string FileGuid { get; set; }
         public DateTime DownloadDate { get; set; }
-
         public int NamingConvention { get; set; }
-
     }
 
     public class FilenameResponse
@@ -76,13 +81,33 @@ namespace SaaSClient
 
     public class FileSectionRequest
     {
+        public string FileGuid { get; set; }
         public string FileID { get; set; }
         public string RecordType { get; set; }
         public string FileOccurrence { get; set; }
     }
 
+    public class ActivityChangeInfoRequest
+    {
+        public string FileGuid { get; set; }
+        public ActivityChangeInfo[] ActivityChangeInfo { get; set; }
+    }
+
+    public class PlacesRecordsRequest
+    {
+        public string FileGuid { get; set; }
+        public PlacesRecord[] PlacesRecords { get; set; }
+    }
+
+    public class SpecificConditionRecordsRequest
+    {
+        public string FileGuid { get; set; }
+        public SpecificConditionRecord[] SpecificConditionRecords { get; set; }
+    }
+
     public class AnalyseRequest
     {
+        public string FileGuid { get; set; }
         public bool POAasBreak { get; set; }
         public bool MissingManualEntry { get; set; }
         public byte HomeNation { get; set; }
