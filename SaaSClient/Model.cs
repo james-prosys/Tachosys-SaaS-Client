@@ -105,12 +105,27 @@ namespace SaaSClient
         public SpecificConditionRecord[] SpecificConditionRecords { get; set; }
     }
 
+    public class PassengerServiceRecordsRequest
+    {
+        public string FileGuid { get; set; }
+        public PassengerServiceRecord[] PassengerServiceRecords { get; set; }
+    }
+
     public class AnalyseRequest
     {
         public string FileGuid { get; set; }
+
+        public byte HomeNation { get; set; }
+
+        public uint WorkingTimeAveragePeriod { get; set; }
+        public UInt32 WorkingTimeNightWorkPeriodStarts { get; set; }
+        public UInt32 WorkingTimeNightWorkPeriodEnds { get; set; }
+        public UInt32 WorkingTimeNightWorkTimeOffset { get; set; }
+        public bool WorkingTimeNightWorkUseDaylightSaving { get; set; }
+
         public bool POAasBreak { get; set; }
         public bool MissingManualEntry { get; set; }
-        public byte HomeNation { get; set; }
+
         public string Language { get; set; }
         public string TimeZone { get; set; }
     }
@@ -210,6 +225,12 @@ namespace SaaSClient
         public byte specificConditionType;
     }
 
+    public struct PassengerServiceRecord
+    {
+        public TimeReal entryTime;
+        public PassengerServiceType passengerServiceType;
+    }
+
     public struct DateF
     {
 
@@ -227,6 +248,19 @@ namespace SaaSClient
     {
         public UInt32 Ticks;
 
+        public static readonly TimeReal MinValue = new TimeReal(0);
+        public static readonly TimeReal MaxValue = new TimeReal(UInt32.MaxValue);
+
+        public TimeReal(UInt32 seconds)
+        {
+            this.Ticks = seconds;
+        }
+        public TimeReal(DateTime value)
+        {
+            TimeSpan t = value - MinValue;
+            this.Ticks = (UInt32)t.TotalSeconds;
+        }
+
         public static implicit operator DateTime(TimeReal t)
         {
             UInt32 seconds = t.Ticks;
@@ -236,6 +270,10 @@ namespace SaaSClient
             ret = ret.AddMinutes(minutes);
             ret = ret.AddSeconds(remainder);
             return ret;
+        }
+        public static explicit operator TimeReal(DateTime t)
+        {
+            return new TimeReal(t);
         }
 
         public DateTime ToDateTime()
@@ -272,6 +310,12 @@ namespace SaaSClient
         public string cardReplacementIndex;
         public string cardRenewalIndex;
 
+    }
+
+    public enum PassengerServiceType
+    {
+        OccasionalServiceBegin = 1,
+        OccasionalServiceEnd
     }
 }
 
